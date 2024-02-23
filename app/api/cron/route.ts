@@ -16,7 +16,7 @@ export const revalidate = 0;
 export async function GET() {
   try {
     connectToDB();
-    const products = await Product.find({});
+    const products = await Product.find();
     if (!products) {
       return {
         status: 404,
