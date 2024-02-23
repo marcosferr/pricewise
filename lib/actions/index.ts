@@ -5,6 +5,8 @@ import Product from "../models/Product.model";
 import { connectToDB } from "../mongoose";
 import { scrapeAmazonProduct } from "../scraper";
 import { getAveragePrice, getHighestPrice, getLowestPrice } from "../utils";
+import { generateEmailBody, sendEmail } from "../nodemailer";
+import { EmailContent } from "@/types";
 
 export async function scrapeAndStoreProduct(productUrl: string) {
   if (!productUrl) {
@@ -92,5 +94,34 @@ export async function getAllProducts() {
   } catch (error: any) {
     console.log(error.message);
     throw new Error(`Failed to fetch products: ${error.message}`);
+  }
+}
+
+export async function addUserEmailToProduct(productId: string, email: string) {
+  try {
+    connectToDB();
+    console.log("Se busca el producto");
+    const product = await Product.findById(productId);
+    if (!product) {
+      return;
+    }
+    console.log("Se encontro el producto");
+
+    const userExists = product.users.some((user: any) => user.email === email);
+    if (userExists) {
+      console.log("Ya existe un usuario");
+      return;
+    }
+
+    product.users.push({ email });
+    await product.save();
+
+    const emailContent = await generateEmailBody(product, "WELCOME");
+
+    console.log("Enviando mensaje");
+    await sendEmail(emailContent, [email]);
+  } catch (error: any) {
+    console.log(error.message);
+    throw new Error(`Failed to add user email to product: ${error.message}`);
   }
 }
